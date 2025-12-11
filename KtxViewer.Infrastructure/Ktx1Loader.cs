@@ -10,16 +10,17 @@ public sealed class Ktx1Loader : IKtxLoader
     // KTX 1.0 identifier: «KTX 11»\r\n\x1A\n
     private static ReadOnlySpan<byte> Ktx1Identifier => [0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A];
 
-    public async Task<KtxImage> LoadAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<KtxImage> LoadAsync(string filePath, CancellationToken cancellationToken = default, IProgress<double>? progress = null)
     {
         await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
-        return await LoadAsync(stream, cancellationToken);
+        return await LoadAsync(stream, cancellationToken, progress);
     }
 
-    public async Task<KtxImage> LoadAsync(Stream stream, CancellationToken cancellationToken = default)
+    public async Task<KtxImage> LoadAsync(Stream stream, CancellationToken cancellationToken = default, IProgress<double>? progress = null)
     {
         var header = new byte[64];
         var bytesRead = await stream.ReadAsync(header, cancellationToken);
+        progress?.Report(10.0);
 
         if (bytesRead < 64)
         {
@@ -96,6 +97,7 @@ public sealed class Ktx1Loader : IKtxLoader
 
         var imageData = new byte[imageDataSize];
         await stream.ReadExactlyAsync(imageData, cancellationToken);
+        progress?.Report(100.0);
 
         var format = MapGlFormat(glInternalFormat, glFormat, glType);
         var pixelData = ConvertToRgba8(imageData, (int)width, (int)height, format, glType, glFormat);

@@ -19,7 +19,7 @@ public sealed class LoadImageUseCaseTests
         };
 
         mockLoader
-            .Setup(x => x.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), It.IsAny<IProgress<double>?>()))
             .ReturnsAsync(expectedImage);
 
         var useCase = new LoadImageUseCase(mockLoader.Object);

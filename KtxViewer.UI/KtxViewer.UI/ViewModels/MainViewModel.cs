@@ -33,6 +33,9 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _isLoading;
 
     [ObservableProperty]
+    private double _loadProgress;
+
+    [ObservableProperty]
     private double _zoomLevel = 1.0;
 
     public MainViewModel(LoadImageUseCase loadImageUseCase)
@@ -58,27 +61,35 @@ public sealed partial class MainViewModel : ObservableObject
         IsInfoVisible = !IsInfoVisible;
     }
 
-    [RelayCommand]
-    private async Task OpenFileAsync()
+    public async Task LoadFileAsync(string filePath)
     {
-        var dialog = new OpenFileDialog
+        if (!File.Exists(filePath))
         {
-            Filter = "KTX Files (*.ktx;*.ktx2)|*.ktx;*.ktx2|KTX2 Files (*.ktx2)|*.ktx2|KTX Files (*.ktx)|*.ktx|All Files (*.*)|*.*",
-            Title = "Open KTX Texture"
-        };
-
-        if (dialog.ShowDialog() != true)
+            MessageBox.Show($"File not found: {filePath}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
+        }
 
         try
         {
             IsLoading = true;
-            var image = await _loadImageUseCase.ExecuteAsync(dialog.FileName);
+            LoadProgress = 0;
+
+            var progress = new Progress<double>(value =>
+            {
+                LoadProgress = Math.Min(90, value * 0.9);
+            });
+
+            var image = await _loadImageUseCase.ExecuteAsync(filePath, default, progress);
+
+            LoadProgress = 95;
+            await Task.Yield();
 
             CurrentImage = ConvertToBitmap(image);
+            LoadProgress = 100;
+
             ImageInfo = $"{image.Width}x{image.Height} | {image.Format} | {image.MipLevels} mip(s) | {image.LayerCount} layer(s)";
 
-            var fileInfo = new FileInfo(dialog.FileName);
+            var fileInfo = new FileInfo(filePath);
             var fileSizeKb = fileInfo.Length / 1024.0;
             var fileSizeMb = fileSizeKb / 1024.0;
             var sizeStr = fileSizeMb >= 1 ? $"{fileSizeMb:F2} MB" : $"{fileSizeKb:F2} KB";
@@ -132,6 +143,21 @@ public sealed partial class MainViewModel : ObservableObject
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenFileAsync()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "KTX Files (*.ktx;*.ktx2)|*.ktx;*.ktx2|KTX2 Files (*.ktx2)|*.ktx2|KTX Files (*.ktx)|*.ktx|All Files (*.*)|*.*",
+            Title = "Open KTX Texture"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            await LoadFileAsync(dialog.FileName);
         }
     }
 

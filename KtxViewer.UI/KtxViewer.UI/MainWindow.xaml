@@ -218,24 +218,25 @@
                                 Margin="10,0,0,0"/>
 
                         <StackPanel Orientation="Vertical" Margin="20,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding FileInfo}"
-                                       Foreground="#CCFFFFFF"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding ImageInfo}"
-                                       Foreground="#99FFFFFF"
-                                       FontSize="11"
-                                       Margin="0,2,0,0"/>
+                            <TextBlock Foreground="White" FontSize="12" Opacity="0.7">
+                                <Run Text="{Binding FileInfo, Mode=OneWay}"/>
+                            </TextBlock>
+                            <TextBlock Foreground="White" FontSize="12" Opacity="0.7" Margin="0,2,0,0">
+                                <Run Text="{Binding ImageInfo, Mode=OneWay}"/>
+                            </TextBlock>
                         </StackPanel>
                     </StackPanel>
 
-                    <ProgressBar IsIndeterminate="True"
-                                 Height="4"
+                    <!-- Progress Bar -->
+                    <ProgressBar Height="4"
                                  VerticalAlignment="Bottom"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding LoadProgress}"
+                                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                                 Foreground="#4080FF"
                                  Background="Transparent"
-                                 Foreground="#60FFFFFF"
-                                 BorderThickness="0"
-                                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                 BorderThickness="0"/>
                 </Grid>
             </Border>
         </Grid>

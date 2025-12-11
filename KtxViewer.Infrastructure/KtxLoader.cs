@@ -10,13 +10,13 @@ public sealed class KtxLoader : IKtxLoader
 {
     private static ReadOnlySpan<byte> KtxIdentifier => [0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A];
 
-    public async Task<KtxImage> LoadAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<KtxImage> LoadAsync(string filePath, CancellationToken cancellationToken = default, IProgress<double>? progress = null)
     {
         await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
-        return await LoadAsync(stream, cancellationToken);
+        return await LoadAsync(stream, cancellationToken, progress);
     }
 
-    public async Task<KtxImage> LoadAsync(Stream stream, CancellationToken cancellationToken = default)
+    public async Task<KtxImage> LoadAsync(Stream stream, CancellationToken cancellationToken = default, IProgress<double>? progress = null)
     {
         var header = new byte[80];
         var bytesRead = await stream.ReadAsync(header, cancellationToken);

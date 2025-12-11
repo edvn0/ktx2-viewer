@@ -8,6 +8,9 @@ Simple GUI application for viewing KTX and KTX2 texture files. Built with .NET 9
 - ✅ Automatic format detection (Strategy pattern)
 - ✅ Support for BasisU/ETC1S supercompression (via libktx)
 - ✅ Display detailed texture metadata
+- ✅ File associations - open files by double-click
+- ✅ Command-line support
+- ✅ Progress bar for loading large files
 - ✅ MVVM architecture with CommunityToolkit.Mvvm
 - ✅ Clean Architecture (Core → Application → Infrastructure → UI)
 - ✅ Liquid Glass design system with transparency and blur effects
@@ -55,6 +58,32 @@ dotnet restore
 dotnet build
 dotnet run --project KtxViewer.UI/KtxViewer.UI/KtxViewer.UI.csproj
 ```
+
+### 4. File Associations (Optional)
+
+To open `.ktx` and `.ktx2` files by double-clicking in Windows:
+
+1. Build in Release mode: `dotnet build -c Release`
+2. Run PowerShell as Administrator
+3. Execute: `.\register-file-associations.ps1`
+
+See [FILE_ASSOCIATIONS.md](FILE_ASSOCIATIONS.md) for details.
+
+## Usage
+
+### Open from GUI
+- Click "Open File" button
+- Select a `.ktx` or `.ktx2` file
+
+### Open from Command Line
+```bash
+KtxViewer.UI.exe path\to\texture.ktx2
+```
+
+### Open from Windows Explorer
+After registering file associations:
+- Double-click any `.ktx` or `.ktx2` file
+- Or right-click → "Open with" → "KTX Viewer"
 
 ## Supported Formats
 

@@ -6,7 +6,7 @@ public sealed class LoadImageUseCase(IKtxLoader loader)
 {
     private readonly IKtxLoader _loader = loader ?? throw new ArgumentNullException(nameof(loader));
 
-    public async Task<KtxImage> ExecuteAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<KtxImage> ExecuteAsync(string filePath, CancellationToken cancellationToken = default, IProgress<double>? progress = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
@@ -15,6 +15,6 @@ public sealed class LoadImageUseCase(IKtxLoader loader)
             throw new FileNotFoundException($"File not found: {filePath}");
         }
 
-        return await _loader.LoadAsync(filePath, cancellationToken);
+        return await _loader.LoadAsync(filePath, cancellationToken, progress);
     }
 }

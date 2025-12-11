@@ -13,13 +13,13 @@ public sealed class CompositeKtxLoader : IKtxLoader
         _ktx2Loader = new Ktx2Loader();
     }
 
-    public async Task<KtxImage> LoadAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<KtxImage> LoadAsync(string filePath, CancellationToken cancellationToken = default, IProgress<double>? progress = null)
     {
         await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
-        return await LoadAsync(stream, cancellationToken);
+        return await LoadAsync(stream, cancellationToken, progress);
     }
 
-    public async Task<KtxImage> LoadAsync(Stream stream, CancellationToken cancellationToken = default)
+    public async Task<KtxImage> LoadAsync(Stream stream, CancellationToken cancellationToken = default, IProgress<double>? progress = null)
     {
         var identifier = new byte[12];
         var bytesRead = await stream.ReadAsync(identifier, cancellationToken);
@@ -41,7 +41,7 @@ public sealed class CompositeKtxLoader : IKtxLoader
             identifier[6] == 0x30 &&
             identifier[7] == 0xBB)
         {
-            return await _ktx2Loader.LoadAsync(stream, cancellationToken);
+            return await _ktx2Loader.LoadAsync(stream, cancellationToken, progress);
         }
 
         // KTX1: «KTX 11»
@@ -54,7 +54,7 @@ public sealed class CompositeKtxLoader : IKtxLoader
             identifier[6] == 0x31 &&
             identifier[7] == 0xBB)
         {
-            return await _ktx1Loader.LoadAsync(stream, cancellationToken);
+            return await _ktx1Loader.LoadAsync(stream, cancellationToken, progress);
         }
 
         throw new InvalidDataException($"Unknown file format. Expected KTX1 or KTX2 identifier, got: {BitConverter.ToString(identifier)}");
