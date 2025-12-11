@@ -1,4 +1,5 @@
 using KtxViewer.Core;
+using KtxViewer.Core.Models;
 using System.Buffers.Binary;
 using System.Text;
 
@@ -24,6 +25,8 @@ public sealed class KtxLoader : IKtxLoader
         {
             throw new InvalidDataException("Invalid KTX2 file identifier");
         }
+
+        var metadata = await ParseMetadataAsync(stream, header, cancellationToken);
 
         var vkFormat = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(12));
         var typeSize = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(16));
@@ -64,7 +67,8 @@ public sealed class KtxLoader : IKtxLoader
                         Format = TextureFormat.RGBA8,
                         PixelData = transcodedData,
                         MipLevels = (int)levelCount,
-                        LayerCount = (int)layerCount
+                        LayerCount = (int)layerCount,
+                        Metadata = metadata
                     };
                 }
             }
@@ -79,7 +83,8 @@ public sealed class KtxLoader : IKtxLoader
                 Format = TextureFormat.ETC1S,
                 PixelData = CreateInfoPlaceholder((int)width, (int)height, "BasisU ETC1S Compressed").ToArray(),
                 MipLevels = (int)levelCount,
-                LayerCount = (int)layerCount
+                LayerCount = (int)layerCount,
+                Metadata = metadata
             };
         }
 
@@ -128,7 +133,8 @@ public sealed class KtxLoader : IKtxLoader
             Format = format,
             PixelData = pixelData,
             MipLevels = (int)levelCount,
-            LayerCount = (int)layerCount
+            LayerCount = (int)layerCount,
+            Metadata = metadata
         };
     }
 
@@ -219,5 +225,197 @@ public sealed class KtxLoader : IKtxLoader
         }
 
         return rgba;
+    }
+
+    private async Task<KtxMetadata> ParseMetadataAsync(Stream stream, byte[] header, CancellationToken cancellationToken)
+    {
+        var vkFormat = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(12));
+        var typeSize = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(16));
+        var width = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(20));
+        var height = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(24));
+        var depth = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(28));
+        var levelCount = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(32));
+        var faceCount = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(36));
+        var layerCount = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(40));
+        var supercompressionScheme = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(44));
+
+        var dfdByteOffset = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(48));
+        var dfdByteLength = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(52));
+        var kvdByteOffset = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(56));
+        var kvdByteLength = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(60));
+
+        var metadata = new KtxMetadata
+        {
+            VkFormat = vkFormat,
+            TypeSize = typeSize,
+            PixelWidth = width,
+            PixelHeight = height,
+            PixelDepth = depth,
+            LayerCount = layerCount,
+            FaceCount = faceCount,
+            LevelCount = levelCount,
+            SupercompressionScheme = supercompressionScheme
+        };
+
+        // Parse Key/Value Data
+        if (kvdByteLength > 0)
+        {
+            stream.Seek(kvdByteOffset, SeekOrigin.Begin);
+            var kvdBuffer = new byte[kvdByteLength];
+            await stream.ReadExactlyAsync(kvdBuffer, cancellationToken);
+            ParseKeyValueData(metadata, kvdBuffer);
+        }
+
+        // Parse DFD
+        if (dfdByteLength > 0)
+        {
+            stream.Seek(dfdByteOffset, SeekOrigin.Begin);
+            var dfdBuffer = new byte[dfdByteLength];
+            await stream.ReadExactlyAsync(dfdBuffer, cancellationToken);
+            ParseDfd(metadata, dfdBuffer);
+        }
+
+        return metadata;
+    }
+
+    private void ParseKeyValueData(KtxMetadata metadata, byte[] buffer)
+    {
+        int offset = 0;
+        while (offset < buffer.Length)
+        {
+            if (offset + 4 > buffer.Length) break;
+            var len = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan(offset));
+            offset += 4;
+
+            if (offset + len > buffer.Length) break;
+
+            var kvSpan = buffer.AsSpan(offset, (int)len);
+            int nullIndex = -1;
+            for (int i = 0; i < kvSpan.Length; i++)
+            {
+                if (kvSpan[i] == 0)
+                {
+                    nullIndex = i;
+                    break;
+                }
+            }
+
+            if (nullIndex > 0)
+            {
+                var key = Encoding.UTF8.GetString(kvSpan.Slice(0, nullIndex));
+                var valueSpan = kvSpan.Slice(nullIndex + 1);
+                if (valueSpan.Length > 0 && valueSpan[valueSpan.Length - 1] == 0)
+                {
+                    valueSpan = valueSpan.Slice(0, valueSpan.Length - 1);
+                }
+
+                string value;
+                try
+                {
+                    bool isBinary = false;
+                    for(int i=0; i<valueSpan.Length; i++)
+                    {
+                        byte b = valueSpan[i];
+                        if (b < 32 && b != 9 && b != 10 && b != 13) { isBinary = true; break; }
+                    }
+
+                    if (isBinary)
+                    {
+                        value = BitConverter.ToString(valueSpan.ToArray()).Replace("-", " ");
+                    }
+                    else
+                    {
+                        value = Encoding.UTF8.GetString(valueSpan);
+                    }
+                }
+                catch
+                {
+                    value = BitConverter.ToString(valueSpan.ToArray()).Replace("-", " ");
+                }
+
+                metadata.KeyValuePairs[key] = value;
+            }
+
+            offset += (int)len;
+
+            // Padding
+            int padding = 3 - ((int)len + 3) % 4;
+            offset += padding;
+        }
+    }
+
+    private void ParseDfd(KtxMetadata metadata, byte[] buffer)
+    {
+        if (buffer.Length < 16) return;
+
+        var colorInfo = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan(12));
+        var colorModel = (byte)(colorInfo & 0xFF);
+        var colorPrimaries = (byte)((colorInfo >> 8) & 0xFF);
+        var transferFunction = (byte)((colorInfo >> 16) & 0xFF);
+
+        metadata.ColorModel = GetColorModelName(colorModel);
+        metadata.ColorPrimaries = GetColorPrimariesName(colorPrimaries);
+        metadata.TransferFunction = GetTransferFunctionName(transferFunction);
+    }
+
+    private string GetColorModelName(byte model)
+    {
+        return model switch
+        {
+            0 => "Unspecified",
+            1 => "RGBSDA",
+            2 => "YUVSDA",
+            3 => "YIQ",
+            4 => "Lab",
+            128 => "BC1A",
+            129 => "BC2",
+            130 => "BC3",
+            131 => "BC4",
+            132 => "BC5",
+            133 => "BC6H",
+            134 => "BC7",
+            163 => "ETC1S",
+            166 => "UASTC",
+            _ => $"Unknown ({model})"
+        };
+    }
+
+    private string GetColorPrimariesName(byte primaries)
+    {
+        return primaries switch
+        {
+            0 => "Unspecified",
+            1 => "BT.709 (sRGB)",
+            2 => "BT.601 EBU",
+            3 => "BT.601 SMPTE",
+            4 => "BT.2020",
+            5 => "CIEXYZ",
+            6 => "ACES",
+            7 => "ACEScc",
+            8 => "NTSC 1953",
+            9 => "PAL 525",
+            10 => "Display P3",
+            11 => "Adobe RGB",
+            _ => $"Unknown ({primaries})"
+        };
+    }
+
+    private string GetTransferFunctionName(byte tf)
+    {
+        return tf switch
+        {
+            0 => "Unspecified",
+            1 => "Linear",
+            2 => "sRGB",
+            3 => "ITU",
+            4 => "NTSC",
+            5 => "PAL",
+            6 => "BT.709",
+            7 => "BT.2020",
+            8 => "ADM",
+            9 => "HLG",
+            10 => "PQ (Perceptual Quantizer)",
+            _ => $"Unknown ({tf})"
+        };
     }
 }

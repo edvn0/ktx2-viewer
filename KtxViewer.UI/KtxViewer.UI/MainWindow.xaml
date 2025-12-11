@@ -158,6 +158,40 @@
                         </Border>
                     </Grid>
                 </Border>
+
+                <Border Background="#F5101010"
+                        BorderBrush="#40FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        HorizontalAlignment="Right"
+                        Width="400"
+                        Margin="0"
+                        Visibility="{Binding IsInfoVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Detailed Metadata"
+                                   Foreground="White"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Margin="20,20,20,10"/>
+
+                        <ScrollViewer Grid.Row="1" Margin="20,0,20,20">
+                            <TextBox Text="{Binding DetailedInfo}"
+                                     Foreground="#CCFFFFFF"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     FontSize="13"
+                                     FontFamily="Consolas"
+                                     TextWrapping="Wrap"
+                                     IsReadOnly="True"
+                                     SelectionBrush="#40FFFFFF"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
             </Grid>
 
             <Border Grid.Row="2" Background="#20FFFFFF" Height="50" CornerRadius="0,0,12,12">
@@ -170,6 +204,11 @@
                         <Button Content="Reset Zoom"
                                 Style="{StaticResource GlassButton}"
                                 Command="{Binding ResetZoomCommand}"
+                                Margin="10,0,0,0"/>
+
+                        <Button Content="Info"
+                                Style="{StaticResource GlassButton}"
+                                Command="{Binding ToggleInfoCommand}"
                                 Margin="10,0,0,0"/>
 
                         <StackPanel Orientation="Vertical" Margin="20,0,0,0" VerticalAlignment="Center">

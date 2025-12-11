@@ -24,6 +24,12 @@ public sealed partial class MainViewModel : ObservableObject
     private string? _fileInfo;
 
     [ObservableProperty]
+    private string? _detailedInfo;
+
+    [ObservableProperty]
+    private bool _isInfoVisible;
+
+    [ObservableProperty]
     private bool _isLoading;
 
     [ObservableProperty]
@@ -44,6 +50,12 @@ public sealed partial class MainViewModel : ObservableObject
     private void ResetZoom()
     {
         ZoomLevel = 1.0;
+    }
+
+    [RelayCommand]
+    private void ToggleInfo()
+    {
+        IsInfoVisible = !IsInfoVisible;
     }
 
     [RelayCommand]
@@ -71,6 +83,37 @@ public sealed partial class MainViewModel : ObservableObject
             var fileSizeMb = fileSizeKb / 1024.0;
             var sizeStr = fileSizeMb >= 1 ? $"{fileSizeMb:F2} MB" : $"{fileSizeKb:F2} KB";
             FileInfo = $"{fileInfo.Name} | {sizeStr}";
+
+            if (image.Metadata != null)
+            {
+                var md = image.Metadata;
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"Resolution: {md.PixelWidth}x{md.PixelHeight}x{md.PixelDepth}");
+                sb.AppendLine($"Format: {md.VkFormat} (Vulkan ID)");
+                sb.AppendLine($"Type Size: {md.TypeSize}");
+                sb.AppendLine($"Levels: {md.LevelCount}");
+                sb.AppendLine($"Layers: {md.LayerCount}");
+                sb.AppendLine($"Faces: {md.FaceCount}");
+                sb.AppendLine($"Supercompression: {GetSupercompressionName(md.SupercompressionScheme)}");
+                sb.AppendLine($"Color Model: {md.ColorModel}");
+                sb.AppendLine($"Color Primaries: {md.ColorPrimaries}");
+                sb.AppendLine($"Transfer Function: {md.TransferFunction}");
+
+                if (md.KeyValuePairs.Count > 0)
+                {
+                    sb.AppendLine("\nMetadata:");
+                    foreach (var kvp in md.KeyValuePairs)
+                    {
+                        sb.AppendLine($"  {kvp.Key}: {kvp.Value}");
+                    }
+                }
+
+                DetailedInfo = sb.ToString();
+            }
+            else
+            {
+                DetailedInfo = "No metadata available";
+            }
         }
         catch (Exception ex)
         {
@@ -80,6 +123,18 @@ public sealed partial class MainViewModel : ObservableObject
         {
             IsLoading = false;
         }
+    }
+
+    private string GetSupercompressionName(uint scheme)
+    {
+        return scheme switch
+        {
+            0 => "None",
+            1 => "BasisLZ",
+            2 => "Zstandard",
+            3 => "ZLIB",
+            _ => $"Unknown ({scheme})"
+        };
     }
 
     private static BitmapSource ConvertToBitmap(KtxImage image)
