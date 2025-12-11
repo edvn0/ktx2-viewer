@@ -12,7 +12,7 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        IKtxLoader loader = new KtxLoader();
+        IKtxLoader loader = new CompositeKtxLoader();
         var useCase = new LoadImageUseCase(loader);
         var viewModel = new MainViewModel(useCase);
         var mainWindow = new MainWindow(viewModel);

@@ -1,11 +1,13 @@
-# KTX2 Viewer
+# KTX Viewer
 
-Simple GUI application for viewing KTX2 texture files. Built with .NET 9, C# 13, WPF, Clean Architecture, and Liquid Glass design.
+Simple GUI application for viewing KTX and KTX2 texture files. Built with .NET 9, C# 13, WPF, Clean Architecture, and Liquid Glass design.
 
 ## Features
 
-- ✅ Load and display KTX2 texture files
+- ✅ Load and display KTX and KTX2 texture files
+- ✅ Automatic format detection (Strategy pattern)
 - ✅ Support for BasisU/ETC1S supercompression (via libktx)
+- ✅ Display detailed texture metadata
 - ✅ MVVM architecture with CommunityToolkit.Mvvm
 - ✅ Clean Architecture (Core → Application → Infrastructure → UI)
 - ✅ Liquid Glass design system with transparency and blur effects

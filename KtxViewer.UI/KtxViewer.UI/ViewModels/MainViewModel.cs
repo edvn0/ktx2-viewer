@@ -63,8 +63,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var dialog = new OpenFileDialog
         {
-            Filter = "KTX2 Files (*.ktx2)|*.ktx2|All Files (*.*)|*.*",
-            Title = "Open KTX2 Texture"
+            Filter = "KTX Files (*.ktx;*.ktx2)|*.ktx;*.ktx2|KTX2 Files (*.ktx2)|*.ktx2|KTX Files (*.ktx)|*.ktx|All Files (*.*)|*.*",
+            Title = "Open KTX Texture"
         };
 
         if (dialog.ShowDialog() != true)
@@ -89,12 +89,22 @@ public sealed partial class MainViewModel : ObservableObject
                 var md = image.Metadata;
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine($"Resolution: {md.PixelWidth}x{md.PixelHeight}x{md.PixelDepth}");
-                sb.AppendLine($"Format: {md.VkFormat} (Vulkan ID)");
+
+                if (md.VkFormat > 0)
+                {
+                    sb.AppendLine($"Format: {md.VkFormat} (Vulkan ID)");
+                }
+
                 sb.AppendLine($"Type Size: {md.TypeSize}");
                 sb.AppendLine($"Levels: {md.LevelCount}");
                 sb.AppendLine($"Layers: {md.LayerCount}");
                 sb.AppendLine($"Faces: {md.FaceCount}");
-                sb.AppendLine($"Supercompression: {GetSupercompressionName(md.SupercompressionScheme)}");
+
+                if (md.SupercompressionScheme > 0)
+                {
+                    sb.AppendLine($"Supercompression: {GetSupercompressionName(md.SupercompressionScheme)}");
+                }
+
                 sb.AppendLine($"Color Model: {md.ColorModel}");
                 sb.AppendLine($"Color Primaries: {md.ColorPrimaries}");
                 sb.AppendLine($"Transfer Function: {md.TransferFunction}");

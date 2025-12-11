@@ -79,26 +79,32 @@
                                Margin="20,0,0,0"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
-                        <Button Content="min"
+                        <Button Content="—"
                                 Click="Minimize_Click"
-                                Width="60" Height="30"
+                                Width="40" Height="40"
                                 Style="{StaticResource GlassButton}"
                                 Margin="5,0"
-                                FontSize="13"
+                                FontSize="18"
+                                FontWeight="Light"
+                                Padding="0"
                                 shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
-                        <Button Content="max"
+                        <Button Content="□"
                                 Click="Maximize_Click"
-                                Width="60" Height="30"
+                                Width="40" Height="40"
                                 Style="{StaticResource GlassButton}"
                                 Margin="5,0"
-                                FontSize="13"
+                                FontSize="18"
+                                FontWeight="Light"
+                                Padding="0"
                                 shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
-                        <Button Content="close"
+                        <Button Content="✕"
                                 Click="Close_Click"
-                                Width="70" Height="30"
+                                Width="40" Height="40"
                                 Style="{StaticResource GlassButton}"
                                 Margin="5,0"
-                                FontSize="13"
+                                FontSize="18"
+                                FontWeight="Light"
+                                Padding="0"
                                 shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
                     </StackPanel>
                 </Grid>

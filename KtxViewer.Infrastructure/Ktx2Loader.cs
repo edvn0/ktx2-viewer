@@ -5,10 +5,9 @@ using System.Text;
 
 namespace KtxViewer.Infrastructure;
 
-[Obsolete("Use Ktx2Loader or CompositeKtxLoader instead")]
-public sealed class KtxLoader : IKtxLoader
+public sealed class Ktx2Loader : IKtxLoader
 {
-    private static ReadOnlySpan<byte> KtxIdentifier => [0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A];
+    private static ReadOnlySpan<byte> Ktx2Identifier => [0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A];
 
     public async Task<KtxImage> LoadAsync(string filePath, CancellationToken cancellationToken = default)
     {
@@ -26,7 +25,7 @@ public sealed class KtxLoader : IKtxLoader
             throw new InvalidDataException($"File too small. Expected at least 80 bytes, got {bytesRead}");
         }
 
-        if (!header.AsSpan(0, 12).SequenceEqual(KtxIdentifier))
+        if (!header.AsSpan(0, 12).SequenceEqual(Ktx2Identifier))
         {
             throw new InvalidDataException("Invalid KTX2 file identifier");
         }
