@@ -61,7 +61,7 @@ public sealed partial class MainViewModel : ObservableObject
         IsInfoVisible = !IsInfoVisible;
     }
 
-    public async Task LoadFileAsync(string filePath)
+    public async Task LoadFileAsync(string filePath, CancellationToken cancellationToken = default)
     {
         if (!File.Exists(filePath))
         {
@@ -79,7 +79,7 @@ public sealed partial class MainViewModel : ObservableObject
                 LoadProgress = Math.Min(90, value * 0.9);
             });
 
-            var image = await _loadImageUseCase.ExecuteAsync(filePath, default, progress);
+            var image = await _loadImageUseCase.ExecuteAsync(filePath, cancellationToken, progress);
 
             LoadProgress = 95;
             await Task.Yield();
@@ -147,7 +147,7 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task OpenFileAsync()
+    private async Task OpenFileAsync(CancellationToken cancellationToken = default)
     {
         var dialog = new OpenFileDialog
         {
@@ -157,7 +157,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         if (dialog.ShowDialog() == true)
         {
-            await LoadFileAsync(dialog.FileName);
+            await LoadFileAsync(dialog.FileName, cancellationToken);
         }
     }
 
