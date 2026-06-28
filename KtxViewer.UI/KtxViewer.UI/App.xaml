@@ -6,5 +6,62 @@
     <Application.Resources>
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:BoolToThicknessConverter x:Key="BoolToThicknessConverter"/>
+        <converters:FileNameConverter x:Key="FileNameConverter"/>
+        <converters:SubtractConverter x:Key="SubtractConverter"/>
+        <converters:IndexToNumberConverter x:Key="IndexToNumberConverter"/>
+        <converters:InverseScaleConverter x:Key="InverseScaleConverter"/>
+
+        <!-- ====================================================================
+             Liquid Glass design tokens.
+             Glass is the FUNCTIONAL layer (bars, panels, controls) that floats
+             above the content. Surfaces use a light-catching top-to-bottom
+             gradient (lensing), a hairline rgba border and a specular top
+             highlight; floating panels add a soft shadow for depth. Translucency
+             is kept readable, never flat or fully opaque.
+             ==================================================================== -->
+
+        <!-- Interactive control (button) surfaces -->
+        <LinearGradientBrush x:Key="GlassControlBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#33FFFFFF" Offset="0"/>
+            <GradientStop Color="#1AFFFFFF" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="GlassControlHoverBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#4DFFFFFF" Offset="0"/>
+            <GradientStop Color="#2BFFFFFF" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="GlassControlPressedBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#16FFFFFF" Offset="0"/>
+            <GradientStop Color="#0FFFFFFF" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Toolbars / chrome bars (subtle, recede behind content) -->
+        <LinearGradientBrush x:Key="GlassBarBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#26FFFFFF" Offset="0"/>
+            <GradientStop Color="#14FFFFFF" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Floating panels (info, file list) - dark tinted glass, kept legible -->
+        <LinearGradientBrush x:Key="GlassPanelBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#D81E2630" Offset="0"/>
+            <GradientStop Color="#CC141A22" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Small floating overlays (badges, nav) -->
+        <LinearGradientBrush x:Key="GlassOverlayBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#B0222A34" Offset="0"/>
+            <GradientStop Color="#A0141A22" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Hairline edge + specular top highlight (lensing) -->
+        <SolidColorBrush x:Key="GlassBorderBrush" Color="#4DFFFFFF"/>
+        <LinearGradientBrush x:Key="GlassHighlightBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#3CFFFFFF" Offset="0"/>
+            <GradientStop Color="#0AFFFFFF" Offset="0.5"/>
+            <GradientStop Color="#00FFFFFF" Offset="0.5"/>
+        </LinearGradientBrush>
+
+        <!-- Soft shadow that lifts a glass surface above the content layer -->
+        <DropShadowEffect x:Key="GlassDepthShadow" Color="#000000" ShadowDepth="0" BlurRadius="24" Opacity="0.45"/>
     </Application.Resources>
 </Application>
