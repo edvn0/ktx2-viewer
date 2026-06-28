@@ -22,9 +22,9 @@
 
     <Window.Resources>
         <Style x:Key="GlassButton" TargetType="Button">
-            <Setter Property="Background" Value="#20FFFFFF"/>
+            <Setter Property="Background" Value="{StaticResource GlassControlBrush}"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+            <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="16,8"/>
             <Setter Property="FontSize" Value="14"/>
@@ -32,22 +32,33 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
-                            <Border.Effect>
-                                <DropShadowEffect ShadowDepth="0" BlurRadius="10" Opacity="0.3"/>
-                            </Border.Effect>
+                        <Grid>
+                            <!-- Glass surface -->
+                            <Border x:Name="Surface"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="9">
+                                <Border.Effect>
+                                    <DropShadowEffect ShadowDepth="0" BlurRadius="12" Opacity="0.3"/>
+                                </Border.Effect>
+                            </Border>
+                            <!-- Specular top highlight (lensing) -->
+                            <Border CornerRadius="9"
+                                    IsHitTestVisible="False"
+                                    Background="{StaticResource GlassHighlightBrush}"/>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Margin="{TemplateBinding Padding}"/>
-                        </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#30FFFFFF"/>
+                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource GlassControlHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#40FFFFFF"/>
+                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource GlassControlPressedBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -56,7 +67,12 @@
         </Style>
     </Window.Resources>
 
-    <Border x:Name="MainBorder" CornerRadius="12" Background="#E0101010" BorderBrush="#40FFFFFF" BorderThickness="1">
+    <Border x:Name="MainBorder" CornerRadius="12" Background="#E0101010" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1"
+            AllowDrop="True"
+            DragEnter="MainBorder_DragEnter"
+            DragOver="MainBorder_DragOver"
+            DragLeave="MainBorder_DragLeave"
+            Drop="MainBorder_Drop">
         <Border.Effect>
             <DropShadowEffect ShadowDepth="0" BlurRadius="30" Opacity="0.5"/>
         </Border.Effect>
@@ -68,7 +84,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Background="#20FFFFFF" CornerRadius="12,12,0,0"
+            <Border Grid.Row="0" Background="{StaticResource GlassBarBrush}" CornerRadius="12,12,0,0"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid>
                     <TextBlock Text="KTX2 Viewer"
@@ -88,15 +104,32 @@
                                 FontWeight="Light"
                                 Padding="0"
                                 shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
-                        <Button Content="□"
-                                Click="Maximize_Click"
+                        <Button Click="Maximize_Click"
                                 Width="40" Height="40"
                                 Style="{StaticResource GlassButton}"
                                 Margin="5,0"
-                                FontSize="18"
-                                FontWeight="Light"
                                 Padding="0"
-                                shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                            <Grid Width="14" Height="14" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                                <Border x:Name="MaximizeIcon"
+                                        Width="11" Height="11"
+                                        BorderBrush="White"
+                                        BorderThickness="1.3"/>
+                                <Grid x:Name="RestoreIcon" Visibility="Collapsed">
+                                    <Border Width="8" Height="8"
+                                            BorderBrush="White"
+                                            BorderThickness="1.3"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"/>
+                                    <Border Width="8" Height="8"
+                                            BorderBrush="White"
+                                            BorderThickness="1.3"
+                                            Background="#FF2A2A2A"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Bottom"/>
+                                </Grid>
+                            </Grid>
+                        </Button>
                         <Button Content="✕"
                                 Click="Close_Click"
                                 Width="40" Height="40"
@@ -112,7 +145,7 @@
 
             <Grid Grid.Row="1" Margin="20">
                 <Border Background="#10FFFFFF" CornerRadius="8" BorderBrush="#30FFFFFF" BorderThickness="1">
-                    <Grid>
+                    <Grid x:Name="ImageAreaGrid">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                     Visibility="{Binding CurrentImage, Converter={StaticResource NullToVisibilityConverter}}">
                             <TextBlock Text="No texture loaded"
@@ -136,48 +169,227 @@
                                      PreviewMouseMove="ScrollViewer_PreviewMouseMove"
                                      PreviewMouseLeftButtonUp="ScrollViewer_PreviewMouseLeftButtonUp"
                                      Background="Transparent"
+                                     Visibility="{Binding CurrentImage, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}"
                                      IsHitTestVisible="{Binding CurrentImage, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
-                            <Image x:Name="ZoomImage"
-                                   Source="{Binding CurrentImage}"
-                                   Stretch="None"
-                                   RenderOptions.BitmapScalingMode="HighQuality"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center">
-                                <Image.LayoutTransform>
-                                    <ScaleTransform ScaleX="{Binding ZoomLevel}"
-                                                   ScaleY="{Binding ZoomLevel}"/>
-                                </Image.LayoutTransform>
-                            </Image>
+                            <Border BorderBrush="White"
+                                    BorderThickness="{Binding IsBorderVisible, Converter={StaticResource BoolToThicknessConverter}, ConverterParameter=2}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid.LayoutTransform>
+                                        <ScaleTransform ScaleX="{Binding ZoomLevel}"
+                                                       ScaleY="{Binding ZoomLevel}"/>
+                                    </Grid.LayoutTransform>
+                                    <Image x:Name="ZoomImage"
+                                           Source="{Binding CurrentImage}"
+                                           Stretch="None"
+                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <!-- Spritesheet map overlay: white frame outlines in image-pixel space.
+                                         Wrapped in a Canvas (zero desired size) so the stroke never inflates
+                                         the layout or shifts the image alignment. -->
+                                    <Canvas IsHitTestVisible="False">
+                                        <Path Data="{Binding MapGeometry}"
+                                              Stroke="White"
+                                              StrokeThickness="{Binding ZoomLevel, Converter={StaticResource InverseScaleConverter}, ConverterParameter=1.5}"
+                                              Visibility="{Binding IsMapOverlayVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </Canvas>
+                                </Grid>
+                            </Border>
                         </ScrollViewer>
 
-                        <Border Background="#80000000"
-                                CornerRadius="8"
+                        <Border Background="{StaticResource GlassOverlayBrush}"
+                                BorderBrush="{StaticResource GlassBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
                                 Padding="12,6"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top"
-                                Margin="10">
+                                Margin="10"
+                                Effect="{StaticResource GlassDepthShadow}">
                             <TextBlock Foreground="White"
                                        FontSize="14"
                                        FontWeight="SemiBold">
                                 <Run Text="{Binding ZoomLevel, StringFormat={}{0:P0}, Mode=OneWay}"/>
                             </TextBlock>
                         </Border>
+
+                        <Border Background="{StaticResource GlassOverlayBrush}"
+                                BorderBrush="{StaticResource GlassBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="6,4"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Margin="10"
+                                Effect="{StaticResource GlassDepthShadow}"
+                                Visibility="{Binding IsMultiImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="◀"
+                                        Style="{StaticResource GlassButton}"
+                                        Command="{Binding PreviousImageCommand}"
+                                        Width="40" Height="40"
+                                        Padding="0"
+                                        FontSize="16"
+                                        ToolTip="Previous (←)"/>
+                                <TextBlock Text="{Binding NavigationInfo, Mode=OneWay}"
+                                           Foreground="White"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"
+                                           MinWidth="60"
+                                           TextAlignment="Center"
+                                           Margin="8,0"/>
+                                <Button Content="▶"
+                                        Style="{StaticResource GlassButton}"
+                                        Command="{Binding NextImageCommand}"
+                                        Width="40" Height="40"
+                                        Padding="0"
+                                        FontSize="16"
+                                        ToolTip="Next (→)"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{StaticResource GlassPanelBrush}"
+                                CornerRadius="12"
+                                BorderBrush="{StaticResource GlassBorderBrush}"
+                                BorderThickness="1"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Margin="10"
+                                Width="{Binding FileListWidth}"
+                                MaxHeight="{Binding ActualHeight, ElementName=ImageAreaGrid, Converter={StaticResource SubtractConverter}, ConverterParameter=20}"
+                                Effect="{StaticResource GlassDepthShadow}"
+                                Visibility="{Binding IsFileListVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Specular top highlight (lensing) -->
+                                <Border Grid.RowSpan="2"
+                                        CornerRadius="12"
+                                        IsHitTestVisible="False"
+                                        VerticalAlignment="Top"
+                                        Height="48"
+                                        Background="{StaticResource GlassHighlightBrush}"/>
+
+                                <Grid Grid.Row="0" Margin="12,8,8,4">
+                                    <TextBlock Text="Images"
+                                               Foreground="White"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"/>
+                                    <Button Command="{Binding ToggleFileListCommand}"
+                                            Style="{StaticResource GlassButton}"
+                                            HorizontalAlignment="Right"
+                                            Width="22" Height="22"
+                                            Padding="0"
+                                            FontSize="12"
+                                            Content="✕"
+                                            ToolTip="Hide list"/>
+                                </Grid>
+
+                                <ListBox Grid.Row="1"
+                                         ItemsSource="{Binding Playlist}"
+                                         SelectedIndex="{Binding SelectedListIndex, Mode=TwoWay}"
+                                         AlternationCount="100000"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         Margin="4,0,10,8"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Foreground" Value="#CCFFFFFF"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Border x:Name="Bd"
+                                                                Background="Transparent"
+                                                                CornerRadius="6"
+                                                                Margin="2,1">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="Bd" Property="Background" Value="#25FFFFFF"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="Bd" Property="Background" Value="#5040A0FF"/>
+                                                                <Setter Property="Foreground" Value="White"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel LastChildFill="True" Margin="8,5">
+                                                <TextBlock DockPanel.Dock="Left"
+                                                           Text="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=(ItemsControl.AlternationIndex), Converter={StaticResource IndexToNumberConverter}}"
+                                                           Foreground="#80FFFFFF"
+                                                           FontSize="12"
+                                                           MinWidth="26"/>
+                                                <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}"
+                                                           ToolTip="{Binding}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           FontSize="12"/>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <Thumb x:Name="FileListResizer"
+                                       Grid.RowSpan="2"
+                                       Width="8"
+                                       HorizontalAlignment="Right"
+                                       Cursor="SizeWE"
+                                       DragDelta="FileListResizer_DragDelta"
+                                       ToolTip="Drag to resize">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Border Background="Transparent">
+                                                <Border Width="2"
+                                                        HorizontalAlignment="Center"
+                                                        Background="#30FFFFFF"
+                                                        CornerRadius="1"
+                                                        Margin="0,8"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </Border>
 
-                <Border Background="#F5101010"
-                        BorderBrush="#40FFFFFF"
+                <Border Background="{StaticResource GlassPanelBrush}"
+                        BorderBrush="{StaticResource GlassBorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="8"
+                        CornerRadius="12"
                         HorizontalAlignment="Right"
                         Width="400"
                         Margin="0"
+                        Effect="{StaticResource GlassDepthShadow}"
                         Visibility="{Binding IsInfoVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
+
+                        <!-- Specular top highlight (lensing) -->
+                        <Border Grid.RowSpan="2"
+                                CornerRadius="12"
+                                IsHitTestVisible="False"
+                                VerticalAlignment="Top"
+                                Height="64"
+                                Background="{StaticResource GlassHighlightBrush}"/>
 
                         <TextBlock Text="Detailed Metadata"
                                    Foreground="White"
@@ -200,12 +412,26 @@
                 </Border>
             </Grid>
 
-            <Border Grid.Row="2" Background="#20FFFFFF" Height="50" CornerRadius="0,0,12,12">
+            <Border Grid.Row="2" Background="{StaticResource GlassBarBrush}" MinHeight="50" Padding="0,4,0,10" CornerRadius="0,0,12,12">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0">
                         <Button Content="Open File"
                                 Style="{StaticResource GlassButton}"
                                 Command="{Binding OpenFileCommand}"/>
+
+                        <Button Style="{StaticResource GlassButton}"
+                                Command="{Binding SaveAsPngCommand}"
+                                Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Viewbox Width="16" Height="16" Margin="0,0,8,0">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"
+                                              Fill="White"/>
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Save as .PNG" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
 
                         <Button Content="Reset Zoom"
                                 Style="{StaticResource GlassButton}"
@@ -217,12 +443,40 @@
                                 Command="{Binding ToggleInfoCommand}"
                                 Margin="10,0,0,0"/>
 
+                        <Button Content="Files"
+                                Style="{StaticResource GlassButton}"
+                                Command="{Binding ToggleFileListCommand}"
+                                Margin="10,0,0,0"
+                                ToolTip="Show/hide the file list"
+                                Visibility="{Binding IsMultiImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                        <CheckBox Content="Border"
+                                  IsChecked="{Binding IsBorderVisible}"
+                                  Foreground="White"
+                                  VerticalAlignment="Center"
+                                  Margin="20,0,0,0"/>
+
+                        <CheckBox Content="Spritesheet Map"
+                                  IsChecked="{Binding IsSpritesheetMapVisible}"
+                                  Foreground="White"
+                                  VerticalAlignment="Center"
+                                  Margin="16,0,0,0"
+                                  ToolTip="Show frame boundaries from the loaded .json map"
+                                  Visibility="{Binding IsMapLoaded, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
                         <StackPanel Orientation="Vertical" Margin="20,0,0,0" VerticalAlignment="Center">
                             <TextBlock Foreground="White" FontSize="12" Opacity="0.7">
                                 <Run Text="{Binding FileInfo, Mode=OneWay}"/>
                             </TextBlock>
                             <TextBlock Foreground="White" FontSize="12" Opacity="0.7" Margin="0,2,0,0">
                                 <Run Text="{Binding ImageInfo, Mode=OneWay}"/>
+                            </TextBlock>
+                            <TextBlock Foreground="#80FFB0" FontSize="12" Opacity="0.85" Margin="0,2,0,0">
+                                <Run Text="{Binding AlphaInfo, Mode=OneWay}"/>
+                            </TextBlock>
+                            <TextBlock Foreground="#B0D0FF" FontSize="12" Opacity="0.85" Margin="0,2,0,0"
+                                       Visibility="{Binding IsMapLoaded, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Run Text="{Binding MapInfo, Mode=OneWay}"/>
                             </TextBlock>
                         </StackPanel>
                     </StackPanel>
@@ -238,6 +492,28 @@
                                  Background="Transparent"
                                  BorderThickness="0"/>
                 </Grid>
+            </Border>
+
+            <Border x:Name="DropOverlay"
+                    Grid.Row="0" Grid.RowSpan="3"
+                    CornerRadius="12"
+                    Background="#CC101820"
+                    BorderBrush="#804080FF"
+                    BorderThickness="3"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="⬇"
+                               Foreground="#80B0FF"
+                               FontSize="64"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Drop .ktx / .ktx2 textures, or a .json map"
+                               Foreground="White"
+                               FontSize="22"
+                               FontWeight="Light"
+                               Margin="0,12,0,0"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
             </Border>
         </Grid>
     </Border>

@@ -1,0 +1,101 @@
+name: Build Windows Installer
+
+# Builds the NSIS installer on every push so the .exe can be downloaded from the
+# run's Artifacts. Pushing a tag like v1.2.3 additionally publishes a GitHub Release
+# with the installer attached for public download.
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $v = $env:GITHUB_REF -replace '^refs/tags/v', ''
+          } else {
+            $v = "1.1.$env:GITHUB_RUN_NUMBER"
+          }
+          # Normalize to exactly three numeric segments (NSIS VIProductVersion needs X.Y.Z[.0]).
+          $parts = $v.Split('.')
+          while ($parts.Count -lt 3) { $parts += '0' }
+          $v = ($parts[0..2]) -join '.'
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Installer version: $v"
+
+      - name: Ensure NSIS
+        shell: pwsh
+        run: |
+          $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+          if ((Get-Command makensis -ErrorAction SilentlyContinue) -or (Test-Path $nsis)) {
+            Write-Host "NSIS already available."
+          } else {
+            Write-Host "Installing NSIS via Chocolatey..."
+            choco install nsis -y --no-progress
+          }
+
+      - name: Install libktx (provides ktx.dll)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Windows-x64.exe'
+          $installer = Join-Path $env:RUNNER_TEMP 'ktx-setup.exe'
+          Write-Host "Downloading $url"
+          Invoke-WebRequest -Uri $url -OutFile $installer
+
+          Write-Host "Silent-installing KTX-Software..."
+          Start-Process -FilePath $installer -ArgumentList '/S' -Wait
+
+          $expected = 'C:\Program Files\KTX-Software\bin\ktx.dll'
+          if (-not (Test-Path $expected)) {
+            Write-Host "ktx.dll not at default path, searching..."
+            $found = Get-ChildItem 'C:\Program Files\KTX-Software' -Recurse -Filter 'ktx.dll' -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) {
+              New-Item -ItemType Directory -Force -Path (Split-Path $expected) | Out-Null
+              Copy-Item $found.FullName $expected -Force
+            }
+          }
+          if (-not (Test-Path $expected)) {
+            throw "ktx.dll was not found after installing KTX-Software."
+          }
+          Write-Host "ktx.dll ready at $expected"
+
+      - name: Build installer
+        shell: pwsh
+        run: .\build-installer.ps1 -Version ${{ steps.ver.outputs.version }}
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KtxViewerSetup-${{ steps.ver.outputs.version }}
+          path: dist/*.exe
+          if-no-files-found: error
+
+      - name: Publish GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
+          generate_release_notes: true

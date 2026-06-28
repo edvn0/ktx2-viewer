@@ -22,6 +22,31 @@ Simple GUI application for viewing KTX and KTX2 texture files. Built with .NET 9
 - Windows 10/11
 - **libktx.dll** (for BasisU ETC1S texture support)
 
+## Platform Support
+
+**This application is Windows-only.** The UI (`KtxViewer.UI`) is built on **WPF**
+(`net9.0-windows`, `UseWPF=true`), which only exists on Windows — there is no .NET
+runtime that runs WPF on Linux or macOS. Attempting to publish for a non-Windows
+runtime fails at build time:
+
+```
+error NETSDK1082: There was no runtime pack for Microsoft.WindowsDesktop.App.WPF
+available for the specified RuntimeIdentifier 'linux-x64'.
+```
+
+The UI also relies on Windows-only APIs (Win32 P/Invoke for the custom window chrome,
+`Microsoft.Win32` dialogs, `System.Windows.Media.Imaging`). For these reasons there is
+**no `.deb` or `.dmg` export** and none can be produced from the WPF UI as-is.
+
+> Porting note: the `Core`, `Application` and `Infrastructure` projects are all plain
+> `net9.0` and platform-agnostic, so a future cross-platform build is feasible by
+> replacing only the UI layer (e.g. with [Avalonia UI](https://avaloniaui.net), which is
+> WPF-like and supports `.deb`/`.dmg` packaging) and shipping the native libktx binary
+> per-OS (`ktx.dll` / `libktx.so` / `libktx.dylib`). This is a separate effort and is not
+> part of the current build.
+
+Distribution on Windows is via the [NSIS installer](#building-the-installer-nsis).
+
 ## Setup
 
 ### 1. Install .NET 9
@@ -68,6 +93,41 @@ To open `.ktx` and `.ktx2` files by double-clicking in Windows:
 3. Execute: `.\register-file-associations.ps1`
 
 See [FILE_ASSOCIATIONS.md](FILE_ASSOCIATIONS.md) for details.
+
+## Building the Installer (NSIS)
+
+A Windows installer can be produced with [NSIS](https://nsis.sourceforge.io). It deploys
+the app to `Program Files`, creates Start menu / desktop shortcuts, and **associates
+`.ktx` and `.ktx2` files with the application** so Windows opens them automatically.
+
+### Prerequisites
+- [NSIS 3.x](https://nsis.sourceforge.io/Download) (`makensis.exe` is auto-detected from
+  `Program Files\NSIS`, or add it to `PATH`).
+
+### Build
+
+```powershell
+.\build-installer.ps1 -Version 1.0.0
+```
+
+This publishes the app (Release, win-x64, framework-dependent), bundles `ktx.dll`, and
+runs NSIS. The installer is written to `dist\KtxViewerSetup-<version>.exe`.
+
+Use `-SkipPublish` to reuse the existing `.\publish` output instead of re-publishing.
+
+The NSIS script lives at [installer/KtxViewer.nsi](installer/KtxViewer.nsi). The file
+association is an opt-out component in the installer UI; the uninstaller removes it and
+refreshes the shell automatically.
+
+### Automated builds (GitHub Actions)
+
+Every push to `main`/`master` builds the installer via
+[`.github/workflows/build-installer.yml`](.github/workflows/build-installer.yml). The
+runner installs the .NET 9 SDK, NSIS and libktx, then runs `build-installer.ps1`. Download
+the resulting `KtxViewerSetup-*.exe` from the **Artifacts** section of the workflow run.
+
+To cut a public release, push a tag like `v1.2.3` — the workflow additionally publishes a
+**GitHub Release** with the installer attached for end users to download.
 
 ## Usage
 

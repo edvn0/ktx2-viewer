@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+с$ErrorActionPreference = "Stop"
 
 Write-Host "Building KTX2 Viewer Release..." -ForegroundColor Cyan
 

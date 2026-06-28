@@ -3,6 +3,7 @@ using KtxViewer.Core;
 using KtxViewer.Infrastructure;
 using KtxViewer.UI.ViewModels;
 using System.IO;
+using System.Linq;
 using System.Windows;
 
 namespace KtxViewer.UI;
@@ -20,13 +21,13 @@ public partial class App : System.Windows.Application
 
         mainWindow.Show();
 
-        // Handle file association - open file from command line
+        // Handle file association - open file(s) from command line
         if (e.Args.Length > 0)
         {
-            var filePath = e.Args[0];
-            if (File.Exists(filePath))
+            var filePaths = e.Args.Where(File.Exists).ToArray();
+            if (filePaths.Length > 0)
             {
-                _ = viewModel.LoadFileAsync(filePath);
+                _ = viewModel.LoadFilesAsync(filePaths);
             }
         }
     }
